@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         /* Hide Scrollbar */
         .scrollbar-hide::-webkit-scrollbar {
@@ -28,6 +30,25 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        /* Loading Spinner */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #3498db;
+            width: 20px;
+            height: 20px;
+            -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* SweetAlert Font Adjustment */
+        .swal2-popup {
+            font-family: 'Sarabun', sans-serif !important;
+            font-size: 0.9rem !important;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen font-sans flex justify-center items-center p-4 md:p-0">
@@ -44,29 +65,50 @@
                         <div class="bg-blue-600 p-1.5 rounded-lg text-white">
                             <i data-lucide="truck" width="20" height="20"></i>
                         </div>
-                        CarHire <span class="text-blue-500">Connect</span>
+                        รถ <span class="text-blue-500">รับจ้าง</span>
                     </h1>
+                    <!-- Refresh Button -->
+                    <button onclick="fetchPostsFromGAS()" class="text-gray-400 hover:text-blue-600 p-1">
+                        <i data-lucide="refresh-cw" width="18"></i>
+                    </button>
                 </div>
                 
-                <!-- Search Bar -->
-                <div class="relative mb-3">
-                    <i data-lucide="search" class="absolute left-3 top-3 text-gray-400" width="18"></i>
-                    <input 
-                        type="text" 
-                        id="search-input"
-                        placeholder="ค้นหา จังหวัด, เส้นทาง, ประเภทรถ..."
-                        class="w-full pl-10 pr-4 py-2.5 bg-gray-100 border-none rounded-2xl text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all"
-                    >
+                <!-- Search & Province Filter Row -->
+                <div class="flex gap-2 mb-3">
+                    <!-- Search Bar -->
+                    <div class="relative flex-1">
+                        <i data-lucide="search" class="absolute left-3 top-3 text-gray-400" width="16"></i>
+                        <input 
+                            type="text" 
+                            id="search-input"
+                            placeholder="ค้นหา..."
+                            class="w-full pl-9 pr-2 py-2.5 bg-gray-100 border-none rounded-xl text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all"
+                        >
+                    </div>
+                    
+                    <!-- Province Select -->
+                    <div class="relative w-1/3 min-w-[120px]">
+                        <select id="province-filter" class="w-full h-full pl-2 pr-6 py-2.5 bg-gray-100 border-none rounded-xl text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 appearance-none truncate">
+                            <option value="">ทุกจังหวัด</option>
+                            <!-- Options will be injected by JS -->
+                        </select>
+                        <i data-lucide="map-pin" class="absolute right-2 top-3 text-gray-400 pointer-events-none" width="14"></i>
+                    </div>
                 </div>
 
-                <!-- Filter Chips -->
+                <!-- Filter Chips (Vehicle Type) -->
                 <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4" id="filter-container">
                     <!-- Filters will be injected by JS -->
                 </div>
             </header>
 
             <!-- Post List -->
-            <div id="post-list" class="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
+            <div id="post-list" class="flex-1 overflow-y-auto p-4 space-y-4 pb-24 relative">
+                <!-- Loading State (Initial) -->
+                <div id="loading-indicator" class="hidden flex-col items-center justify-center py-10 text-gray-400 gap-2">
+                    <div class="loader border-t-blue-500"></div>
+                    <p class="text-xs">กำลังโหลดข้อมูล...</p>
+                </div>
                 <!-- Posts will be injected by JS -->
             </div>
 
@@ -200,6 +242,17 @@
                             <input required name="phone" type="tel" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="08X-XXX-XXXX">
                         </div>
 
+                        <!-- เพิ่มช่อง LINE ID -->
+                        <div>
+                            <label class="text-xs font-medium text-gray-500 mb-1 block flex items-center gap-1">
+                                LINE ID <span class="text-blue-500 text-[10px]">(สำหรับให้ลูกค้าทักแชท)</span>
+                            </label>
+                            <div class="relative">
+                                <i data-lucide="message-circle" class="absolute left-3 top-3 text-green-500" width="16"></i>
+                                <input name="lineId" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 pl-10 text-sm focus:ring-2 focus:ring-green-500 outline-none" placeholder="เช่น somchai.service">
+                            </div>
+                        </div>
+
                         <div>
                             <label class="text-xs font-medium text-gray-500 mb-1 block">รายละเอียดเพิ่มเติม</label>
                             <textarea name="description" rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="ระบุรายละเอียดบริการ..."></textarea>
@@ -208,7 +261,7 @@
 
                     <div class="pb-6">
                         <button type="submit" id="submit-btn" class="w-full py-3.5 rounded-xl text-white font-bold flex justify-center items-center gap-2 shadow-lg shadow-blue-200 transition-all active:scale-[0.98] bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600">
-                            <i data-lucide="save" width="20"></i> ลงประกาศฟรี
+                            <i data-lucide="save" width="20"></i> บันทึกข้อมูล
                         </button>
                     </div>
                 </form>
@@ -219,30 +272,21 @@
 
     <!-- JavaScript Logic -->
     <script>
+        // --- CONFIG ---
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwscvvO9CIRSC67hQmJYTAg4ZfBnpTyYq-Ay9-5A6xRhGNssRwGSBUJ6_hS3K-2M_g/exec';
+
         // --- DATA ---
-        let posts = [
-            {
-                id: 1, driverName: "สมชาย ขนส่ง", vehicleType: "รถกระบะตู้ทึบ", route: "กรุงเทพฯ - เชียงใหม่", province: "กรุงเทพมหานคร", price: "4,500 - 5,500", rating: 4.8, reviews: 124, phone: "081-111-1111", description: "รับขนย้ายหอพัก บ้าน เฟอร์นิเจอร์ ทั่วไทย มีพนักงานยกของ บริการเป็นกันเองครับ", image: "https://placehold.co/600x400/2563eb/white?text=Pickup+Truck"
-            },
-            {
-                id: 2, driverName: "ลุงตู่ รถบรรทุก 6 ล้อ", vehicleType: "รถ 6 ล้อ", route: "ชลบุรี - ระยอง - จันทบุรี", province: "ชลบุรี", price: "3,000 เริ่มต้น", rating: 4.5, reviews: 56, phone: "089-999-9999", description: "รถ 6 ล้อคอก รับงานโซนตะวันออก เหมาเที่ยว ราคาคุยกันได้", image: "https://placehold.co/600x400/dc2626/white?text=6-Wheel+Truck"
-            },
-            {
-                id: 3, driverName: "เจ๊นก รถคอกซิ่ง", vehicleType: "รถกระบะคอก", route: "ทั่วราชอาณาจักร", province: "ขอนแก่น", price: "คิดตามระยะทาง", rating: 4.9, reviews: 312, phone: "090-555-5555", description: "รถด่วน วิ่งงานเกษตร งานทั่วไป ส่งไว ปลอดภัย 100%", image: "https://placehold.co/600x400/16a34a/white?text=Farm+Truck"
-            },
-            {
-                id: 4, driverName: "บริการรถตู้ VIP", vehicleType: "รถตู้", route: "นำเที่ยว ภูเก็ต - พังงา", province: "ภูเก็ต", price: "1,800 / วัน", rating: 4.7, reviews: 89, phone: "088-777-7777", description: "รถตู้ VIP 10 ที่นั่ง เบาะนวด คาราโอเกะ คนขับสุภาพ ชำนาญเส้นทาง", image: "https://placehold.co/600x400/f59e0b/white?text=Van+VIP"
-            },
-            {
-                id: 5, driverName: "Drive Dee Car Rent", vehicleType: "รถ ECO Car", route: "เช่าขับเอง (รับรถสนามบิน)", province: "เชียงใหม่", price: "800 / วัน", rating: 4.6, reviews: 42, phone: "086-666-6666", description: "รถเช่าขับเอง Vios, Yaris สภาพใหม่ ประกันชั้น 1 ไม่ต้องใช้บัตรเครดิต รับรถได้ที่สนามบินเชียงใหม่", image: "https://placehold.co/600x400/ec4899/white?text=Eco+Car+Rental"
-            }
-        ];
+        let posts = []; 
+        let sheetHeaders = []; 
 
         let state = {
             filterType: 'ทั้งหมด',
+            filterProvince: '', // New Province Filter
             searchTerm: '',
             selectedPost: null,
-            chatMessages: []
+            chatMessages: [],
+            currentPage: 1, // Start Page
+            itemsPerPage: 5 // Items per page
         };
 
         const vehicleFilters = [
@@ -258,9 +302,7 @@
         // --- ROUTER & NAVIGATION ---
         const router = {
             navigate: (viewId, data = null) => {
-                // Hide all views
                 document.querySelectorAll('.view').forEach(el => el.classList.add('hidden'));
-                // Show target view
                 document.getElementById(`view-${viewId}`).classList.remove('hidden');
                 
                 if (viewId === 'home') renderHome();
@@ -268,13 +310,145 @@
                 if (viewId === 'chat' && data) initChat(data);
                 if (viewId === 'create') resetCreateForm();
 
-                // Refresh icons
                 lucide.createIcons();
             },
             back: () => router.navigate('home')
         };
 
+        // --- GOOGLE APPS SCRIPT INTEGRATION ---
+
+        async function fetchPostsFromGAS() {
+            const list = document.getElementById('post-list');
+            const loader = document.getElementById('loading-indicator');
+            
+            // Clear current list to prevent data persistence visual glitch
+            list.innerHTML = '';
+            if(loader) {
+                list.appendChild(loader);
+                loader.classList.remove('hidden');
+            }
+            
+            try {
+                const response = await fetch(GAS_API_URL);
+                const result = await response.json();
+                
+                let postsData = [];
+
+                if (result.data && Array.isArray(result.data)) {
+                    postsData = result.data;
+                    sheetHeaders = result.headers || [];
+                } else if (Array.isArray(result)) {
+                    postsData = result;
+                }
+
+                if (postsData.length > 0) {
+                    // Overwrite posts completely
+                    posts = postsData.reverse().map((item, index) => ({
+                        ...item,
+                        id: item.id || Date.now() + index,
+                        rating: item.rating || 0,
+                        reviews: item.reviews || 0,
+                        lineId: item.lineId ? String(item.lineId) : "",
+                        province: item.province ? String(item.province) : "",
+                        route: item.route ? String(item.route) : "",
+                        vehicleType: item.vehicleType ? String(item.vehicleType) : "",
+                        // ปรับปรุงการตรวจสอบรูปภาพให้แสดงผลได้ง่ายขึ้น (เช็คแค่ว่าเป็น URL http)
+                        image: (item.image && String(item.image).startsWith('http')) ? item.image : `https://placehold.co/600x400/818cf8/white?text=${item.vehicleType || 'Vehicle'}`
+                    }));
+                    console.log("Loaded posts:", posts);
+                    
+                    // Update Province Filter Dropdown
+                    populateProvinceFilter();
+                } else {
+                    console.log("No data from GAS");
+                    posts = []; // Clear posts if empty
+                }
+            } catch (error) {
+                console.error("Error fetching from GAS:", error);
+            } finally {
+                if(loader) loader.classList.add('hidden');
+                renderHome();
+            }
+        }
+
+        async function deletePost(postId) {
+            const result = await Swal.fire({
+                title: 'คุณแน่ใจหรือไม่?',
+                text: "การลบนี้จะลบข้อมูลและรูปภาพใน Google Drive ด้วย ไม่สามารถกู้คืนได้!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'ใช่, ลบเลย!',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (!result.isConfirmed) return;
+
+            const btn = document.getElementById('delete-btn');
+            if(btn) btn.disabled = true;
+
+            Swal.fire({
+                title: 'กำลังลบข้อมูล...',
+                text: 'กรุณารอสักครู่ ระบบกำลังลบข้อมูลและไฟล์รูปภาพ',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'delete', id: postId })
+                });
+
+                await Swal.fire(
+                    'ลบสำเร็จ!',
+                    'ข้อมูลและไฟล์รูปภาพถูกลบเรียบร้อยแล้ว',
+                    'success'
+                );
+
+                router.navigate('home');
+                fetchPostsFromGAS(); 
+
+            } catch (error) {
+                console.error("Error deleting post:", error);
+                Swal.fire(
+                    'เกิดข้อผิดพลาด',
+                    'ไม่สามารถลบข้อมูลได้: ' + error.message,
+                    'error'
+                );
+                if(btn) btn.disabled = false;
+            }
+        }
+
         // --- RENDER FUNCTIONS ---
+
+        function populateProvinceFilter() {
+            const provinceSelect = document.getElementById('province-filter');
+            // Get unique, non-empty provinces
+            const uniqueProvinces = [...new Set(posts.map(p => p.province ? p.province.trim() : "").filter(p => p !== ""))].sort();
+            
+            // Generate options
+            let optionsHtml = '<option value="">ทุกจังหวัด</option>';
+            uniqueProvinces.forEach(prov => {
+                optionsHtml += `<option value="${prov}">${prov}</option>`;
+            });
+            
+            // Save current selection (if exists in new list) or reset
+            const currentSelection = provinceSelect.value;
+            provinceSelect.innerHTML = optionsHtml;
+            
+            if (uniqueProvinces.includes(currentSelection)) {
+                provinceSelect.value = currentSelection;
+            } else {
+                provinceSelect.value = "";
+                state.filterProvince = ""; // Reset filter state if province no longer exists
+            }
+        }
 
         function renderFilterChips() {
             const container = document.getElementById('filter-container');
@@ -296,33 +470,61 @@
 
         function renderHome() {
             const list = document.getElementById('post-list');
+            const loader = document.getElementById('loading-indicator');
             
+            let contentHtml = '';
+
+            // 1. Filtering
             const filtered = posts.filter(post => {
+                const safeStr = (val) => val ? String(val).toLowerCase() : '';
+                const searchKey = state.searchTerm.toLowerCase();
+                const provinceKey = state.filterProvince.toLowerCase();
+
                 const matchesSearch = 
-                    post.province.includes(state.searchTerm) || 
-                    post.route.includes(state.searchTerm) ||
-                    post.vehicleType.includes(state.searchTerm);
+                    safeStr(post.province).includes(searchKey) || 
+                    safeStr(post.route).includes(searchKey) ||
+                    safeStr(post.vehicleType).includes(searchKey);
                 
-                const matchesType = state.filterType === 'ทั้งหมด' || post.vehicleType.includes(state.filterType) || 
-                    (state.filterType === 'รถเช่า' && (post.vehicleType.includes('เช่า') || post.vehicleType.includes('ECO') || post.vehicleType.includes('Supercar'))) ||
-                    (state.filterType === 'มอเตอร์ไซค์' && (post.vehicleType.includes('มอเตอร์ไซค์') || post.vehicleType.includes('จักรยาน'))) ||
-                    (state.filterType === 'รถกระบะ' && post.vehicleType.includes('กระบะ'));
+                const matchesType = state.filterType === 'ทั้งหมด' || (post.vehicleType && safeStr(post.vehicleType).includes(state.filterType.toLowerCase())) || 
+                    (state.filterType === 'รถเช่า' && (safeStr(post.vehicleType).includes('เช่า') || safeStr(post.vehicleType).includes('eco') || safeStr(post.vehicleType).includes('supercar'))) ||
+                    (state.filterType === 'มอเตอร์ไซค์' && (safeStr(post.vehicleType).includes('มอเตอร์ไซค์') || safeStr(post.vehicleType).includes('จักรยาน'))) ||
+                    (state.filterType === 'รถกระบะ' && safeStr(post.vehicleType).includes('กระบะ'));
                 
-                return matchesSearch && matchesType;
+                const matchesProvince = state.filterProvince === '' || safeStr(post.province) === provinceKey;
+
+                return matchesSearch && matchesType && matchesProvince;
             });
 
-            if (filtered.length === 0) {
-                list.innerHTML = `
+            // 2. Pagination Logic
+            const totalItems = filtered.length;
+            const totalPages = Math.ceil(totalItems / state.itemsPerPage);
+            
+            // Adjust current page if it exceeds total pages
+            if (state.currentPage > totalPages && totalPages > 0) {
+                state.currentPage = totalPages;
+            }
+            if (totalItems > 0 && state.currentPage < 1) {
+                state.currentPage = 1;
+            }
+
+            const startIndex = (state.currentPage - 1) * state.itemsPerPage;
+            const endIndex = startIndex + state.itemsPerPage;
+            const paginatedPosts = filtered.slice(startIndex, endIndex);
+
+            // 3. Rendering
+            if (totalItems === 0) {
+                contentHtml = `
                     <div class="flex flex-col items-center justify-center text-gray-400 mt-20 gap-3">
                         <i data-lucide="search" width="48" class="opacity-20"></i>
                         <p>ไม่พบรายการที่ค้นหา</p>
                     </div>
                 `;
             } else {
-                list.innerHTML = filtered.map(post => `
-                    <div onclick="selectPost(${post.id})" class="group bg-white rounded-2xl shadow-sm hover:shadow-md border border-gray-100 overflow-hidden active:scale-[0.99] transition-all cursor-pointer fade-in">
+                contentHtml = paginatedPosts.map(post => `
+                    <div onclick="selectPost('${post.id}')" class="group bg-white rounded-2xl shadow-sm hover:shadow-md border border-gray-100 overflow-hidden active:scale-[0.99] transition-all cursor-pointer fade-in">
                         <div class="h-40 overflow-hidden relative">
-                            <img src="${post.image}" alt="${post.vehicleType}" class="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                            <!-- เพิ่ม referrerpolicy="no-referrer" เพื่อช่วยเรื่องการโหลดรูปจาก Drive -->
+                            <img src="${post.image}" referrerpolicy="no-referrer" alt="${post.vehicleType}" class="w-full h-full object-cover transition-transform group-hover:scale-105" onerror="this.src='https://placehold.co/600x400/e2e8f0/gray?text=No+Image'"/>
                             <div class="absolute top-3 left-3 flex gap-2">
                                 <span class="bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full border border-white/20">
                                     ${post.vehicleType}
@@ -355,19 +557,83 @@
                         </div>
                     </div>
                 `).join('');
+
+                // 4. Pagination Controls HTML
+                if (totalPages > 1) {
+                    contentHtml += `
+                        <div class="flex justify-center items-center gap-4 mt-6 py-4">
+                            <button onclick="changePage(-1)" ${state.currentPage === 1 ? 'disabled' : ''} class="flex items-center gap-1 px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                                <i data-lucide="chevron-left" width="16"></i> ย้อนกลับ
+                            </button>
+                            
+                            <span class="text-gray-600 text-sm font-medium">
+                                หน้า ${state.currentPage} / ${totalPages}
+                            </span>
+                            
+                            <button onclick="changePage(1)" ${state.currentPage === totalPages ? 'disabled' : ''} class="flex items-center gap-1 px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                                ถัดไป <i data-lucide="chevron-right" width="16"></i>
+                            </button>
+                        </div>
+                    `;
+                }
             }
+            
+            // Clean slate injection
+            list.innerHTML = ''; 
+            if(loader) list.appendChild(loader); // Keep loader reference
+            list.insertAdjacentHTML('beforeend', contentHtml);
+            
+            // Scroll to top of list if changing pages (optional but good UX)
+            if (state.currentPage > 1 || totalPages > 1) {
+                list.scrollTop = 0;
+            }
+
             lucide.createIcons();
+        }
+
+        // --- PAGINATION HELPERS ---
+        function changePage(direction) {
+            // Prevent changing page if data is not loaded yet (though UI prevents it)
+            if (posts.length === 0) return;
+            
+            // Calculate new page based on current filtered set
+            // Note: We need to recalculate filtered list length to be safe, 
+            // but for simplicity, we trust the buttons state.
+            state.currentPage += direction;
+            renderHome();
         }
 
         function renderDetail(post) {
             const container = document.getElementById('detail-content');
+            
+            // Logic สำหรับปุ่มแชท
+            let chatButtonHtml = '';
+            if (post.lineId && post.lineId.trim() !== '') {
+                chatButtonHtml = `
+                    <a href="https://line.me/ti/p/~${post.lineId}" target="_blank" class="flex-1 flex items-center justify-center gap-2 bg-[#06C755] text-white font-bold py-3 rounded-xl shadow-lg shadow-green-200 active:bg-green-600 active:scale-[0.98] transition-all">
+                        <i data-lucide="message-circle" width="20"></i> ทัก LINE
+                    </a>
+                `;
+            } else {
+                chatButtonHtml = `
+                    <button onclick="startChat()" class="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200 active:bg-blue-700 active:scale-[0.98] transition-all">
+                        <i data-lucide="message-square" width="20"></i> แชท (ในแอป)
+                    </button>
+                `;
+            }
+
             container.innerHTML = `
                 <!-- Image Header -->
                 <div class="relative h-72 bg-gray-200">
                     <button onclick="router.back()" class="absolute top-4 left-4 bg-white/90 backdrop-blur text-gray-800 p-2.5 rounded-full shadow-lg z-10 hover:bg-white transition-all active:scale-95">
                         <i data-lucide="arrow-left" width="22"></i>
                     </button>
-                    <img src="${post.image}" class="w-full h-full object-cover" />
+                    <!-- ปุ่มลบ (ถังขยะ) -->
+                    <button id="delete-btn" onclick="deletePost('${post.id}')" class="absolute top-4 right-4 bg-red-500/90 backdrop-blur text-white p-2.5 rounded-full shadow-lg z-10 hover:bg-red-600 transition-all active:scale-95">
+                        <i data-lucide="trash-2" width="20"></i>
+                    </button>
+
+                    <img src="${post.image}" referrerpolicy="no-referrer" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/600x400/e2e8f0/gray?text=No+Image'"/>
                     <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-20 pb-6 px-5 text-white">
                         <span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded mb-2 inline-block">${post.vehicleType}</span>
                         <h2 class="text-2xl font-bold leading-tight">${post.driverName}</h2>
@@ -405,6 +671,12 @@
                                 <div class="bg-gray-100 p-2 rounded-full text-gray-600"><i data-lucide="truck" width="20"></i></div>
                                 <div><span class="block text-xs text-gray-400 uppercase tracking-wide">เส้นทาง/เงื่อนไข</span><span class="text-gray-800 font-medium">${post.route}</span></div>
                             </div>
+                            ${post.lineId ? `
+                            <div class="flex items-start gap-4">
+                                <div class="bg-green-100 p-2 rounded-full text-green-600"><i data-lucide="message-circle" width="20"></i></div>
+                                <div><span class="block text-xs text-gray-400 uppercase tracking-wide">LINE ID</span><span class="text-gray-800 font-medium">${post.lineId}</span></div>
+                            </div>
+                            ` : ''}
                         </div>
                     </div>
                     
@@ -416,20 +688,18 @@
 
                 <!-- Footer Actions -->
                 <div class="p-4 border-t bg-white safe-area-bottom shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-                    <div class="grid grid-cols-2 gap-3">
-                        <a href="tel:${post.phone}" class="flex items-center justify-center gap-2 bg-white border-2 border-green-500 text-green-600 font-bold py-3 rounded-xl active:bg-green-50 transition-colors">
+                    <div class="flex gap-3">
+                        <a href="tel:${post.phone}" class="flex-1 flex items-center justify-center gap-2 bg-white border-2 border-green-500 text-green-600 font-bold py-3 rounded-xl active:bg-green-50 transition-colors">
                             <i data-lucide="phone" width="20"></i> โทรออก
                         </a>
-                        <button onclick="startChat()" class="flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200 active:bg-blue-700 active:scale-[0.98] transition-all">
-                            <i data-lucide="message-circle" width="20"></i> ทักแชท
-                        </button>
+                        ${chatButtonHtml}
                     </div>
                 </div>
             `;
             lucide.createIcons();
         }
 
-        // --- CHAT LOGIC ---
+        // --- CHAT LOGIC (Fallback) ---
         let chatInterval;
         
         function initChat(post) {
@@ -444,7 +714,7 @@
                     </button>
                     <div class="relative">
                         <div class="w-10 h-10 rounded-full bg-gray-200 overflow-hidden border border-gray-100">
-                            <img src="${post.image}" class="w-full h-full object-cover" />
+                            <img src="${post.image}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/100x100?text=No'"/>
                         </div>
                         <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                     </div>
@@ -468,13 +738,11 @@
             renderMessages();
             lucide.createIcons();
 
-            // Mock Polling
             if (chatInterval) clearInterval(chatInterval);
             chatInterval = setInterval(() => {
-                console.log("[Polling] Checking messages...");
+                // In real app, fetch messages from API here
             }, 4000);
             
-            // Enter key listener
             document.getElementById('chat-input').addEventListener('keypress', function(e) {
                 if(e.key === 'Enter') sendMessage();
             });
@@ -517,14 +785,12 @@
             input.value = '';
             renderMessages();
 
-            // Show Toast
             const toast = document.getElementById('chat-toast');
             toast.classList.remove('opacity-0', '-translate-y-4', 'pointer-events-none');
             setTimeout(() => {
                 toast.classList.add('opacity-0', '-translate-y-4', 'pointer-events-none');
             }, 3000);
 
-            // Mock Reply
             document.getElementById('typing-indicator').classList.remove('hidden');
             const msgList = document.getElementById('chat-messages');
             msgList.scrollTop = msgList.scrollHeight;
@@ -551,10 +817,13 @@
             createFormData = { image: null };
         }
 
-        // Image Upload Handlers
         document.getElementById('image-input').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if(file) {
+                if (file.size > 500000) {
+                     alert("ขนาดรูปภาพใหญ่เกินไป (ควรน้อยกว่า 500KB)");
+                }
+
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     createFormData.image = reader.result;
@@ -572,57 +841,84 @@
             document.getElementById('image-upload-box').classList.remove('hidden');
         });
 
-        // Form Submit
-        document.getElementById('create-form').addEventListener('submit', function(e) {
+        document.getElementById('create-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('submit-btn');
             const originalText = btn.innerHTML;
-            btn.innerHTML = 'กำลังบันทึก...';
-            btn.classList.add('bg-gray-400', 'cursor-not-allowed');
             
-            // Gather data
+            btn.innerHTML = 'กำลังบันทึกไปยัง Google Sheet...';
+            btn.classList.add('bg-gray-400', 'cursor-not-allowed');
+            btn.disabled = true;
+            
             const form = new FormData(e.target);
             const newPost = {
-                id: Date.now(),
+                // สร้าง ID ใหม่ถ้าเป็น create หรือใช้ ID เดิมถ้า update (ในอนาคต)
+                // สำหรับ create ใช้ Date.now() ไปก่อนใน client side แต่จริงๆ GAS จะสร้างทับ
                 driverName: form.get('driverName'),
                 vehicleType: form.get('vehicleType'),
                 price: form.get('price'),
                 province: form.get('province'),
                 route: form.get('route'),
                 phone: form.get('phone'),
+                lineId: form.get('lineId'), 
                 description: form.get('description'),
-                rating: 0, reviews: 0,
-                image: createFormData.image || `https://placehold.co/600x400/818cf8/white?text=${form.get('vehicleType')}`
+                image: createFormData.image || ''
             };
 
-            setTimeout(() => {
-                posts.unshift(newPost);
-                alert("ลงประกาศสำเร็จ!");
+            try {
+                await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(newPost)
+                });
+
+                alert("บันทึกข้อมูลเรียบร้อย!");
+                resetCreateForm();
+                router.navigate('home');
+                fetchPostsFromGAS();
+
+            } catch (error) {
+                console.error("Error saving post:", error);
+                alert("เกิดข้อผิดพลาดในการบันทึก: " + error.message);
+            } finally {
                 btn.innerHTML = originalText;
                 btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-                router.navigate('home');
-            }, 1500);
+                btn.disabled = false;
+            }
         });
 
         // --- HELPERS ---
         function setFilter(type) {
             state.filterType = type;
+            state.currentPage = 1; // Reset to page 1
             renderFilterChips();
             renderHome();
         }
 
         function selectPost(id) {
-            const post = posts.find(p => p.id === id);
-            router.navigate('detail', post);
+            // id ที่รับมาอาจเป็น string หรือ number ต้องเทียบแบบยืดหยุ่น
+            const post = posts.find(p => p.id == id);
+            if (post) {
+                router.navigate('detail', post);
+            } else {
+                console.error("Post not found:", id);
+            }
         }
 
         function startChat() {
             router.navigate('chat', state.selectedPost);
         }
 
-        // Search Listener
         document.getElementById('search-input').addEventListener('input', (e) => {
             state.searchTerm = e.target.value;
+            state.currentPage = 1; // Reset to page 1
+            renderHome();
+        });
+
+        document.getElementById('province-filter').addEventListener('change', (e) => {
+            state.filterProvince = e.target.value;
+            state.currentPage = 1; // Reset to page 1
             renderHome();
         });
 
@@ -630,6 +926,7 @@
         renderFilterChips();
         renderHome();
         lucide.createIcons();
+        fetchPostsFromGAS();
 
     </script>
 </body>
